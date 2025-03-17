@@ -213,6 +213,256 @@ def check_huntgroup_agents_have_huntgroup(connection):
         cursor.close()
 
 
+def check_huntgroups_have_callqueues(connection):
+    """
+    Checks that every entry in huntgroup_config has a corresponding call queue entry
+    in callqueue_config by comparing 'huntgroup_name' and 'huntgroup_domain' from huntgroup_config
+    with 'queue_name' and 'domain' in callqueue_config.
+    Only the columns 'huntgroup_name' and 'huntgroup_domain' are selected from huntgroup_config.
+    Orphan entries (with no matching callqueue) are printed followed by the total count.
+    """
+    cursor = connection.cursor(dictionary=True)
+
+    query = """
+        SELECT 
+            hc.huntgroup_name,
+            hc.huntgroup_domain
+        FROM huntgroup_config hc
+        LEFT JOIN callqueue_config cc 
+            ON hc.huntgroup_name = cc.queue_name 
+           AND hc.huntgroup_domain = cc.domain
+        WHERE cc.queue_name IS NULL;
+    """
+
+    try:
+        cursor.execute(query)
+        missing_entries = cursor.fetchall()
+
+        if missing_entries:
+            print(
+                "Orphan entries in huntgroup_config (no matching callqueue in callqueue_config):"
+            )
+            for entry in missing_entries:
+                print(entry)
+            print(f"\nTotal number of orphan entries found: {len(missing_entries)}")
+        else:
+            print(
+                "All entries in huntgroup_config have corresponding callqueue entries in callqueue_config."
+            )
+    except Exception as e:
+        print(f"Error executing query: {e}")
+    finally:
+        cursor.close()
+
+
+def check_callqueues_have_users(connection):
+    """
+    Checks that every entry in callqueue_config has a corresponding entry in subscriber_config
+    by comparing 'queue_name' and 'domain' in callqueue_config with 'aor_user' and 'aor_host' in subscriber_config.
+    Only the columns 'queue_name' and 'domain' are selected from callqueue_config.
+    Orphan entries (with no matching subscriber entry) are printed followed by the total count.
+    """
+    cursor = connection.cursor(dictionary=True)
+
+    query = """
+        SELECT
+            cc.queue_name,
+            cc.domain
+        FROM callqueue_config cc
+        LEFT JOIN subscriber_config sc
+            ON cc.queue_name = sc.aor_user
+           AND cc.domain = sc.aor_host
+        WHERE sc.aor_user IS NULL;
+    """
+
+    try:
+        cursor.execute(query)
+        missing_entries = cursor.fetchall()
+
+        if missing_entries:
+            print(
+                "Orphan entries in callqueue_config (no matching subscriber in subscriber_config):"
+            )
+            for entry in missing_entries:
+                print(entry)
+            print(f"\nTotal number of orphan entries found: {len(missing_entries)}")
+        else:
+            print(
+                "All entries in callqueue_config have corresponding subscribers in subscriber_config."
+            )
+    except Exception as e:
+        print(f"Error executing query: {e}")
+    finally:
+        cursor.close()
+
+
+def check_users_have_domain(connection):
+    """
+    Checks that every entry in subscriber_config has a corresponding entry in domains_config
+    by comparing 'aor_host' in subscriber_config with 'domain' in domains_config.
+    Only the columns 'subscriber_login', 'aor_user', and 'aor_host' are selected from subscriber_config.
+    Orphan entries (with no matching domain) are printed followed by the total count.
+    """
+    cursor = connection.cursor(dictionary=True)
+
+    query = """
+        SELECT
+            sc.subscriber_login,
+            sc.aor_user,
+            sc.aor_host
+        FROM subscriber_config sc
+        LEFT JOIN domains_config dc ON sc.aor_host = dc.domain
+        WHERE dc.domain IS NULL;
+    """
+
+    try:
+        cursor.execute(query)
+        missing_entries = cursor.fetchall()
+
+        if missing_entries:
+            print(
+                "Orphan entries in subscriber_config (no matching domain in domains_config):"
+            )
+            for entry in missing_entries:
+                print(entry)
+            print(f"\nTotal number of orphan entries found: {len(missing_entries)}")
+        else:
+            print(
+                "All entries in subscriber_config have corresponding domains in domains_config."
+            )
+    except Exception as e:
+        print(f"Error executing query: {e}")
+    finally:
+        cursor.close()
+
+
+def check_devices_have_users(connection):
+    """
+    Checks that every entry in registrar_config (representing devices) has a corresponding
+    user in subscriber_config by comparing 'aor_user' and 'aor_host' from registrar_config
+    with 'subscriber_name' and 'subscriber_domain' in subscriber_config.
+    Excludes entries where aor_host is "*" (as these are not applicable).
+    Only the columns 'aor_user' and 'aor_host' from registrar_config are selected.
+    Orphan entries (with no matching subscriber) are printed followed by the total count.
+    """
+    cursor = connection.cursor(dictionary=True)
+
+    query = """
+        SELECT
+            r.aor_user,
+            r.aor_host
+        FROM registrar_config r
+        LEFT JOIN subscriber_config s
+            ON r.aor_user = s.subscriber_name
+           AND r.aor_host = s.subscriber_domain
+        WHERE r.aor_host <> '*'
+          AND s.subscriber_name IS NULL;
+    """
+
+    try:
+        cursor.execute(query)
+        missing_entries = cursor.fetchall()
+
+        if missing_entries:
+            print(
+                "Orphan entries in registrar_config (no matching subscriber in subscriber_config):"
+            )
+            for entry in missing_entries:
+                print(entry)
+            print(f"\nTotal number of orphan entries found: {len(missing_entries)}")
+        else:
+            print(
+                "All entries in registrar_config (with aor_host not '*') have corresponding subscribers in subscriber_config."
+            )
+    except Exception as e:
+        print(f"Error executing query: {e}")
+    finally:
+        cursor.close()
+
+
+def check_timeframes_have_users(connection):
+    """
+    Checks that every entry in time_frame_selections has a corresponding entry
+    in subscriber_config by comparing 'user' and 'domain' in time_frame_selections
+    with 'aor_user' and 'aor_host' in subscriber_config.
+    Only the columns 'user' and 'domain' from time_frame_selections are selected.
+    Orphan entries (with no matching subscriber) are printed followed by the total count.
+    """
+    cursor = connection.cursor(dictionary=True)
+
+    query = """
+        SELECT
+            tfs.user,
+            tfs.domain
+        FROM time_frame_selections tfs
+        LEFT JOIN subscriber_config sc
+            ON tfs.user = sc.aor_user
+           AND tfs.domain = sc.aor_host
+        WHERE sc.aor_user IS NULL;
+    """
+
+    try:
+        cursor.execute(query)
+        missing_entries = cursor.fetchall()
+
+        if missing_entries:
+            print(
+                "Orphan entries in time_frame_selections (no matching subscriber in subscriber_config):"
+            )
+            for entry in missing_entries:
+                print(entry)
+            print(f"\nTotal number of orphan entries found: {len(missing_entries)}")
+        else:
+            print(
+                "All entries in time_frame_selections have corresponding subscribers in subscriber_config."
+            )
+    except Exception as e:
+        print(f"Error executing query: {e}")
+    finally:
+        cursor.close()
+
+
+def check_answeringrules_have_users(connection):
+    """
+    Checks that every entry in feature_config has a corresponding subscriber in subscriber_config
+    by comparing 'callee_match' in feature_config with 'aor_user' in subscriber_config.
+    Only the columns 'name', 'callee_match', and 'parameters' are selected from feature_config.
+    Orphan entries (with no matching subscriber) are printed followed by the total count.
+    """
+    cursor = connection.cursor(dictionary=True)
+
+    query = """
+        SELECT 
+            fc.name,
+            fc.callee_match,
+            fc.parameters
+        FROM feature_config fc
+        LEFT JOIN subscriber_config sc 
+            ON fc.callee_match = sc.subscriber_login
+        WHERE sc.subscriber_login IS NULL;
+    """
+
+    try:
+        cursor.execute(query)
+        missing_entries = cursor.fetchall()
+
+        if missing_entries:
+            print(
+                "Orphan entries in feature_config (no matching subscriber in subscriber_config):"
+            )
+            for entry in missing_entries:
+                print(entry)
+            print(f"\nTotal number of orphan entries found: {len(missing_entries)}")
+        else:
+            print(
+                "All entries in feature_config have corresponding subscribers in subscriber_config."
+            )
+    except Exception as e:
+        print(f"Error executing query: {e}")
+    finally:
+        cursor.close()
+
+
 def main():
     """
     Main function to establish database connection and run sanity checks.
@@ -223,6 +473,12 @@ def main():
         check_dialplans_have_domain(connection)
         check_domains_have_reseller(connection)
         check_huntgroup_agents_have_huntgroup(connection)
+        check_huntgroups_have_callqueues(connection)
+        check_callqueues_have_users(connection)
+        check_users_have_domain(connection)
+        check_devices_have_users(connection)
+        check_timeframes_have_users(connection)
+        check_answeringrules_have_users(connection)
         connection.close()
     else:
         print("Failed to connect to the database.")
