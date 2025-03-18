@@ -349,14 +349,15 @@ def check_devices_have_users(connection):
 
     query = """
         SELECT
-            r.aor_user,
-            r.aor_host
+            r.aor,
+            r.subscriber_name,
+            r.subscriber_domain
         FROM registrar_config r
         LEFT JOIN subscriber_config s
-            ON r.aor_user = s.subscriber_name
-           AND r.aor_host = s.subscriber_domain
-        WHERE r.aor_host <> '*'
-          AND s.subscriber_name IS NULL;
+            ON r.subscriber_name = s.aor_user
+           AND r.subscriber_domain = s.aor_host
+        WHERE r.subscriber_domain <> '*'
+          AND s.aor_user IS NULL;
     """
 
     try:
