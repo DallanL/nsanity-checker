@@ -204,7 +204,9 @@ def check_huntgroup_agents_have_huntgroup(connection):
             for entry in missing_entries:
                 print(entry)
             print(f"\nTotal number of orphan entries found: {len(missing_entries)}")
-            cleanup_callqueue_agents(missing_entries)
+            # only run cleanup if the APIKEY env is set
+            if os.getenv("APIKEY"):
+                cleanup_callqueue_agents(missing_entries)
         else:
             print(
                 "All entries in huntgroup_entry_config have a corresponding huntgroup in huntgroup_config."
