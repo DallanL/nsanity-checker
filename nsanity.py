@@ -394,7 +394,9 @@ def check_timeframes_have_users(connection):
     query = """
         SELECT
             tfs.user,
-            tfs.domain
+            tfs.domain,
+            tfs.time_frame_name,
+            tfs.error_info
         FROM time_frame_selections tfs
         LEFT JOIN subscriber_config sc
             ON tfs.user = sc.aor_user
@@ -469,20 +471,53 @@ def main():
     Main function to establish database connection and run sanity checks.
     """
     connection = get_db_connection()
-    if connection:
-        check_dial_rules_have_dialplan(connection)
-        check_dialplans_have_domain(connection)
-        check_domains_have_reseller(connection)
-        check_huntgroup_agents_have_huntgroup(connection)
-        check_huntgroups_have_callqueues(connection)
-        check_callqueues_have_users(connection)
-        check_users_have_domain(connection)
-        check_devices_have_users(connection)
-        check_timeframes_have_users(connection)
-        check_answeringrules_have_users(connection)
+    if not connection:
+        print("Failed to connect to the database. Exiting.")
+        return
+
+    # List of sanity checks as (check_name, function) tuples.
+    sanity_checks = [
+        ("check_dial_rules_have_dialplan", check_dial_rules_have_dialplan),
+        ("check_dialplans_have_domain", check_dialplans_have_domain),
+        ("check_domains_have_reseller", check_domains_have_reseller),
+        (
+            "check_huntgroup_agents_have_huntgroup",
+            check_huntgroup_agents_have_huntgroup,
+        ),
+        ("check_huntgroups_have_callqueues", check_huntgroups_have_callqueues),
+        ("check_callqueues_have_users", check_callqueues_have_users),
+        ("check_users_have_domain", check_users_have_domain),
+        ("check_devices_have_users", check_devices_have_users),
+        ("check_timeframes_have_users", check_timeframes_have_users),
+        ("check_answeringrules_have_users", check_answeringrules_have_users),
+    ]
+
+    # Print the menu.
+    print("Select a sanity check to run:")
+    print(" 0: Run all checks")
+    for index, (name, _) in enumerate(sanity_checks, start=1):
+        print(f" {index}: {name}")
+
+    try:
+        choice = int(input("Enter your choice: "))
+    except ValueError:
+        print("Invalid input. Please enter a number.")
         connection.close()
+        return
+
+    if choice == 0:
+        # Run all sanity checks.
+        for name, check_func in sanity_checks:
+            print(f"\nRunning {name}...")
+            check_func(connection)
+    elif 1 <= choice <= len(sanity_checks):
+        check_name, check_func = sanity_checks[choice - 1]
+        print(f"\nRunning {check_name}...")
+        check_func(connection)
     else:
-        print("Failed to connect to the database.")
+        print("Invalid choice.")
+
+    connection.close()
 
 
 if __name__ == "__main__":
