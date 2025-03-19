@@ -36,6 +36,14 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+setup environmental variables(set the API KEY if you want the option of automated cleanup of orphaned entries):
+```bash
+cp env-example .env
+vim .env
+```
+(to quit vim, press esc, then `:wq`)
+
+run the program:
 ```bash
 python3 nsanity.py
 ```
