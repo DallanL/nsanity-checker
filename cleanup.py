@@ -207,7 +207,7 @@ def cleanup_callqueue_agents(orphaned_agents):
         domain_existed = check_if_domain_exists(queue_domain)
 
         if not domain_existed:
-            print(f"Building domain: (queue_domain)")
+            print(f"Building domain: {queue_domain}")
             build_domain(queue_domain)
             user_existed = False
         else:
