@@ -2,6 +2,7 @@ import mysql.connector
 from mysql.connector import Error
 from dotenv import load_dotenv
 import os
+from cleanup import cleanup_callqueue_agents
 
 
 def get_db_connection():
@@ -203,6 +204,7 @@ def check_huntgroup_agents_have_huntgroup(connection):
             for entry in missing_entries:
                 print(entry)
             print(f"\nTotal number of orphan entries found: {len(missing_entries)}")
+            cleanup_callqueue_agents(missing_entries)
         else:
             print(
                 "All entries in huntgroup_entry_config have a corresponding huntgroup in huntgroup_config."
