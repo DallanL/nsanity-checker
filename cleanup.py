@@ -226,6 +226,9 @@ def cleanup_callqueue_agents(orphaned_agents):
         print(f"deleting queue: {queue_name}@{queue_domain}")
         delete_callqueue(queue_name, queue_domain)
         if not domain_existed:
+            print(f"Deleting user: {queue_name}")
+            delete_user(queue_name, queue_domain)
+
             print(f"Deleting domain: {queue_domain}")
             delete_domain(queue_domain)
         elif not user_existed:
