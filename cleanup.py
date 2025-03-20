@@ -1,6 +1,7 @@
 import requests
 from dotenv import load_dotenv
 import os
+import re
 
 load_dotenv()
 APIKEY = os.getenv("APIKEY")
@@ -32,9 +33,25 @@ def ask_yes_no(prompt):
 
 
 def unique_by_keys(dict_list, keys):
+    """
+    Returns a list of dictionaries from dict_list that are unique with respect to the specified keys.
+    Also excludes dictionaries that contain any value with characters other than underscore, hyphen, period, letters, or numbers.
+    The first occurrence is kept.
+    """
+    allowed_pattern = re.compile(r"^[A-Za-z0-9_.-]+$")
     seen = set()
     unique_list = []
+
     for d in dict_list:
+        valid = True
+        for k in keys:
+            value = d.get(k)
+            if isinstance(value, str) and not allowed_pattern.match(value):
+                valid = False
+                break
+        if not valid:
+            continue
+
         key_tuple = tuple((k, d.get(k)) for k in keys)
         if key_tuple not in seen:
             seen.add(key_tuple)
@@ -60,6 +77,7 @@ def check_if_user_exists(user, domain):
 
     response = requests.get(func_url, headers=headers)
     data = response.json()
+    print(data)
     answer = bool(data["total"])
     return answer
 
@@ -217,6 +235,7 @@ def cleanup_callqueue_agents(orphaned_agents):
             print(f"Building User: {queue_name}@{queue_domain}")
             build_user(queue_name, queue_domain)
 
+        print(f"Building queue: {queue_name}@{queue_domain}")
         build_callqueue(queue_name, queue_domain)
         for user in orphaned_agent_ids:
             print(f"Deleting agent: {user} from queue {queue_name}@{queue_domain}")
